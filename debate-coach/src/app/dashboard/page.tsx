@@ -5,19 +5,20 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { speechService, SpeechData } from "@/services/speechService";
+import { caseService, DebateCaseData } from "@/services/caseService";
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSpeeches, setIsLoadingSpeeches] = useState(true);
+  const [isLoadingCases, setIsLoadingCases] = useState(true);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [caseError, setCaseError] = useState<string | null>(null);
   const router = useRouter();
 
   // Real data from Supabase
   const [speeches, setSpeeches] = useState<SpeechData[]>([]);
-  
-  // Mock data for cases (will be replaced in later steps)
-  const [cases, setCases] = useState<any[]>([]);
+  const [cases, setCases] = useState<DebateCaseData[]>([]);
 
   useEffect(() => {
     // Fetch speeches from Supabase
@@ -41,14 +42,30 @@ export default function DashboardPage() {
       }
     };
     
-    // Set mock data for cases
-    setCases([
-      { id: 1, topic: 'Sample Case 1', side: 'Proposition', date: '2023-05-10' },
-      { id: 2, topic: 'Sample Case 2', side: 'Opposition', date: '2023-05-18' },
-    ]);
+    // Fetch debate cases from Supabase
+    const fetchCases = async () => {
+      setIsLoadingCases(true);
+      setCaseError(null);
+      
+      try {
+        const { data, error } = await caseService.getUserCases();
+        
+        if (error) {
+          throw new Error(error.message || 'Failed to fetch debate cases');
+        }
+        
+        setCases(data || []);
+      } catch (error) {
+        console.error('Error fetching debate cases:', error);
+        setCaseError(error instanceof Error ? error.message : 'An unexpected error occurred');
+      } finally {
+        setIsLoadingCases(false);
+      }
+    };
     
-    // Fetch speeches when the component mounts
+    // Fetch data when the component mounts
     fetchSpeeches();
+    fetchCases();
   }, []);
 
   const handleSignOut = async () => {
@@ -73,6 +90,26 @@ export default function DashboardPage() {
       setSpeeches(speeches.filter(speech => speech.id !== id));
     } catch (error) {
       console.error('Error deleting speech:', error);
+      alert(error instanceof Error ? error.message : 'An unexpected error occurred');
+    }
+  };
+  
+  const handleDeleteCase = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this debate case?')) {
+      return;
+    }
+    
+    try {
+      const { error } = await caseService.deleteCase(id);
+      
+      if (error) {
+        throw new Error(error.message || 'Failed to delete debate case');
+      }
+      
+      // Remove the deleted case from the state
+      setCases(cases.filter(debateCase => debateCase.id !== id));
+    } catch (error) {
+      console.error('Error deleting debate case:', error);
       alert(error instanceof Error ? error.message : 'An unexpected error occurred');
     }
   };
@@ -176,7 +213,15 @@ export default function DashboardPage() {
               </Link>
             </div>
             
-            {cases.length === 0 ? (
+            {isLoadingCases ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">Loading debate cases...</p>
+              </div>
+            ) : caseError ? (
+              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+                {caseError}
+              </div>
+            ) : cases.length === 0 ? (
               <p className="text-gray-500">You haven't generated any debate cases yet.</p>
             ) : (
               <div className="space-y-4">
@@ -184,15 +229,28 @@ export default function DashboardPage() {
                   <div key={debateCase.id} className="border rounded-md p-4">
                     <div className="flex justify-between">
                       <h3 className="font-medium">{debateCase.topic}</h3>
-                      <span className="text-sm text-gray-500">{debateCase.date}</span>
+                      <span className="text-sm text-gray-500">
+                        {debateCase.created_at ? formatDate(debateCase.created_at) : 'Unknown date'}
+                      </span>
                     </div>
                     <div className="mt-2 flex justify-between items-center">
                       <span className="text-sm">
-                        Side: <span className="font-semibold">{debateCase.side}</span>
+                        Side: <span className="font-semibold capitalize">{debateCase.side}</span>
                       </span>
-                      <button className="text-sm text-blue-600 hover:text-blue-800">
-                        View Case
-                      </button>
+                      <div className="flex space-x-2">
+                        <Link 
+                          href={`/case/${debateCase.id}`}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          View Case
+                        </Link>
+                        <button 
+                          onClick={() => handleDeleteCase(debateCase.id!)}
+                          className="text-sm text-red-600 hover:text-red-800"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

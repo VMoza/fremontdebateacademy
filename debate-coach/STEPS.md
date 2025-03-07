@@ -118,6 +118,10 @@ This document provides a step-by-step breakdown for implementing the Debate Coac
    CREATE POLICY insert_own_speeches ON speeches FOR INSERT WITH CHECK (auth.uid() = user_id);
    CREATE POLICY update_own_speeches ON speeches FOR UPDATE USING (auth.uid() = user_id);
    CREATE POLICY delete_own_speeches ON speeches FOR DELETE USING (auth.uid() = user_id);
+   
+   -- Grant necessary permissions
+   GRANT ALL ON speeches TO authenticated;
+   GRANT USAGE ON SCHEMA public TO authenticated;
    ```
 2. Create a speech service (`src/services/speechService.ts`) to handle CRUD operations.
 3. Update the FeedbackDisplay component to save speech results to Supabase.
@@ -128,37 +132,62 @@ This document provides a step-by-step breakdown for implementing the Debate Coac
 
 ---
 
-## **Step 7: Implement Debate Case Generator**
-1. Create a **topic input form**.
-2. Create an API route (`/api/generate-case`).
-3. Send topic to LLM (using gpt-4o-mini model) to generate structured MSPDP case.
-4. Display the **ARES points** and assign them to speakers.
-5. **Test:** Ensure debate cases are generated correctly.
+## **Step 7: Implement Debate Case Generator** ✅
+1. Create an API route (`src/app/api/generate-case/route.ts`) to generate debate cases using OpenAI's API.
+   - Implement a two-step process: first research the topic, then generate the case
+   - Use temperature control to ensure creativity while maintaining factual accuracy
+   - Add validation to ensure the generated case meets quality standards
+2. Create a CaseDisplay component (`src/components/CaseDisplay.tsx`) to show the generated case.
+3. Update the Case Generator page to send the topic to the API and display the results.
+4. Implement the ARES-I format (Assertion, Reasoning, Evidence, Source, Impact) for 6 unique points.
+5. Add speaker allocation suggestions for dividing points between speakers.
+6. Add progress indicators and error handling for a better user experience.
+7. **Test:** Ensure debate cases are generated correctly with proper structure and factual information.
 
 ---
 
-## **Step 8: Store and Retrieve Debate Cases**
+## **Step 8: Store and Retrieve Debate Cases** ✅
 1. Create a `debate_cases` table in Supabase:
    ```sql
+   -- Create debate_cases table
    CREATE TABLE debate_cases (
        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       user_id UUID REFERENCES auth.users(id),
-       topic TEXT,
-       case_json JSON,
-       created_at TIMESTAMP DEFAULT now()
+       user_id UUID REFERENCES auth.users(id) NOT NULL,
+       topic TEXT NOT NULL,
+       side TEXT NOT NULL,
+       case_json JSONB NOT NULL,
+       created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
    );
+
+   -- Set up Row Level Security (RLS)
+   ALTER TABLE debate_cases ENABLE ROW LEVEL SECURITY;
+
+   -- Create policies
+   CREATE POLICY select_own_cases ON debate_cases FOR SELECT USING (auth.uid() = user_id);
+   CREATE POLICY insert_own_cases ON debate_cases FOR INSERT WITH CHECK (auth.uid() = user_id);
+   CREATE POLICY update_own_cases ON debate_cases FOR UPDATE USING (auth.uid() = user_id);
+   CREATE POLICY delete_own_cases ON debate_cases FOR DELETE USING (auth.uid() = user_id);
+
+   -- Create index
+   CREATE INDEX debate_cases_user_id_idx ON debate_cases (user_id);
+   
+   -- Grant necessary permissions
+   GRANT ALL ON debate_cases TO authenticated;
    ```
-2. Save generated cases for users.
-3. Fetch past cases in the **dashboard**.
-4. **Test:** Ensure saved cases can be retrieved and displayed for the correct user.
+2. Create a case service (`src/services/caseService.ts`) to handle CRUD operations for debate cases.
+3. Update the CaseDisplay component to save cases to Supabase.
+4. Update the dashboard to fetch and display the user's saved cases.
+5. Create a case detail page (`src/app/case/[id]/page.tsx`) to view saved cases.
+6. **Test:** Ensure cases are saved to Supabase and associated with the correct user.
 
 ---
 
-## **Step 9: Build the User Dashboard**
-1. Create a **dashboard page** (`/dashboard`).
-2. List past **graded speeches** and **debate cases**.
-3. Allow users to **delete** or **re-evaluate** speeches.
-4. **Test:** Ensure dashboard displays and functions correctly.
+## **Step 9: Build the User Dashboard** ✅
+1. Update the dashboard page (`/dashboard`) to display both speeches and debate cases.
+2. Implement functionality to view, delete, and manage user content.
+3. Add loading states and error handling for data fetching.
+4. Ensure proper navigation between dashboard and detail pages.
+5. **Test:** Ensure dashboard displays and functions correctly with real user data.
 
 ---
 
@@ -192,11 +221,14 @@ This document provides a step-by-step breakdown for implementing the Debate Coac
    # OpenAI Configuration
    OPENAI_API_KEY=your_openai_api_key
    ```
-4. Start the development server:
+4. Set up the Supabase database tables:
+   - Run the SQL in `supabase/migrations/create_speeches_table.sql`
+   - Run the SQL in `supabase/migrations/create_debate_cases_table.sql`
+5. Start the development server:
    ```sh
    npm run dev
    ```
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ---
 
