@@ -42,14 +42,17 @@ async function generateResearchBrief(topic: string, side: string): Promise<strin
     Side to argue: "${side || 'Proposition'}"
     
     Please provide a comprehensive research brief that includes:
-    1. Key facts and statistics related to this topic
-    2. Major arguments for the ${side || 'proposition'} side
-    3. Credible sources and studies that can be cited (only include real, verifiable sources)
+    1. Key facts and statistics related to this topic (be specific with numbers and data)
+    2. Major arguments for the ${side || 'proposition'} side with supporting evidence
+    3. Credible sources and studies that can be cited (only include real, verifiable sources with specific names, years, and publications)
     4. Important context and background information
+    5. Expert opinions and quotes from recognized authorities in the field
     
-    This research will be used to create a debate case, so focus on accuracy and factual information.
+    This research will be used to create a detailed debate case, so focus on accuracy, depth, and factual information.
     DO NOT make up or fabricate any statistics, studies, or sources.
     If you're uncertain about specific facts, acknowledge the limitations of available information.
+    
+    Provide at least 10 specific pieces of evidence that can be used in the debate case.
   `;
   
   const response = await openai.chat.completions.create({
@@ -57,7 +60,7 @@ async function generateResearchBrief(topic: string, side: string): Promise<strin
     messages: [
       {
         role: 'system',
-        content: 'You are a professional researcher who provides accurate, factual information with real sources. Never fabricate information.',
+        content: 'You are a professional researcher who provides accurate, factual information with real sources. Never fabricate information. Be thorough and detailed in your research.',
       },
       {
         role: 'user',
@@ -83,17 +86,37 @@ async function generateDebateCase(topic: string, side: string, researchBrief: st
     ${researchBrief}
     
     Please generate a complete debate case using the ARES-I format for each point:
-    - A: Assertion (a clear claim)
-    - R: Reasoning (logical explanation of why the assertion is true)
-    - E: Evidence (specific facts, statistics, or examples that support the reasoning)
-    - S: Source (a credible, real-world source for the evidence - be specific with names, years, and publications)
-    - I: Impact (why this point matters in the broader context of the debate)
+    - A: Assertion (a clear, concise claim)
+    - R: Reasoning (detailed logical explanation of why the assertion is true, 3-5 sentences that thoroughly explain the logic)
+    - E: Evidence (comprehensive facts, statistics, or examples that support the reasoning, with specific numbers and details)
+    - S: Source (a credible, real-world source for the evidence - be specific with names, years, publications, and credentials)
+    - I: Impact (why this point matters in the broader context of the debate, connecting it to real-world significance)
     
     Create 6 unique, well-developed points using this format. Each point should be distinct and address a different aspect of the topic.
     
+    IMPORTANT GUIDELINES FOR EACH COMPONENT:
+    
+    For REASONING:
+    - Provide 3-5 detailed sentences that thoroughly explain the logical connection
+    - Include cause-and-effect relationships
+    - Address potential counterarguments where appropriate
+    - Use clear, logical progression of ideas
+    
+    For EVIDENCE:
+    - Include specific statistics with numbers where possible
+    - Provide concrete examples that illustrate the point
+    - Use a mix of quantitative and qualitative evidence
+    - Make sure evidence directly supports the reasoning
+    
+    For SOURCES:
+    - Include author names, publication names, and years
+    - Specify credentials of experts or organizations cited
+    - Use a variety of source types (academic studies, expert opinions, government data, etc.)
+    - Only use real, verifiable sources
+    
     Also include:
-    - An introduction that frames the debate
-    - A conclusion that summarizes the key points
+    - An introduction that frames the debate (5-7 sentences)
+    - A conclusion that summarizes the key points (4-6 sentences)
     - Suggestions for how to allocate the 6 points between Speaker 1 and Speaker 2
     
     Format your response as a JSON object with the following structure:
@@ -115,14 +138,6 @@ async function generateDebateCase(topic: string, side: string, researchBrief: st
         "speaker2": ["Point 4", "Point 5", "Point 6"]  // List of points for Speaker 2
       }
     }
-    
-    IMPORTANT GUIDELINES:
-    1. Ensure all 6 points are unique and address different aspects of the topic
-    2. Make each point thorough and well-developed
-    3. Use ONLY real, verifiable sources - never fabricate sources or evidence
-    4. If uncertain about specific facts, acknowledge limitations rather than making things up
-    5. Ensure the evidence directly supports the reasoning and assertion
-    6. Make the impact meaningful and relevant to the debate
   `;
   
   const response = await openai.chat.completions.create({
@@ -130,7 +145,7 @@ async function generateDebateCase(topic: string, side: string, researchBrief: st
     messages: [
       {
         role: 'system',
-        content: 'You are an expert debate coach who creates structured debate cases using the ARES-I format. You prioritize factual accuracy and never fabricate information.',
+        content: 'You are an expert debate coach who creates structured debate cases using the ARES-I format. You prioritize factual accuracy, thorough reasoning, and comprehensive evidence. Never fabricate information. Make each point detailed and well-developed.',
       },
       {
         role: 'user',

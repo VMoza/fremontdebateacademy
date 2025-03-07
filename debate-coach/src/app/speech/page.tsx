@@ -70,45 +70,53 @@ export default function SpeechPage() {
   };
   
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-4xl p-8 space-y-8 bg-white rounded-lg shadow-md">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Speech Recording & Grading</h1>
-          <p className="mt-2 text-gray-600">Record your speech, get it transcribed, and receive feedback</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold mb-2">
+            <span className="gradient-text">Speech Recording</span> & Grading
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Record your speech, get it transcribed, and receive detailed feedback to improve your debate skills
+          </p>
         </div>
         
-        <div className="mt-8">
-          <label htmlFor="topic" className="block text-sm font-medium text-gray-700">
-            Debate Topic
-          </label>
-          <input
-            id="topic"
-            name="topic"
-            type="text"
-            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter your debate topic"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-          />
-        </div>
-        
-        <div className="mt-6">
-          <Recorder onRecordingComplete={handleRecordingComplete} />
-          
-          {audioBlob && !transcript && (
-            <SpeechToText 
-              audioBlob={audioBlob} 
-              onTranscriptionComplete={handleTranscriptionComplete} 
+        <div className="card animate-fade-in mb-8">
+          <div className="mb-6">
+            <label htmlFor="topic" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Debate Topic
+            </label>
+            <input
+              id="topic"
+              name="topic"
+              type="text"
+              className="input-field"
+              placeholder="Enter your debate topic"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
             />
-          )}
+          </div>
+          
+          <div className="mt-6">
+            <Recorder onRecordingComplete={handleRecordingComplete} />
+            
+            {audioBlob && !transcript && (
+              <SpeechToText 
+                audioBlob={audioBlob} 
+                onTranscriptionComplete={handleTranscriptionComplete} 
+              />
+            )}
+          </div>
         </div>
         
-        <div className="mt-6 p-6 border border-gray-200 rounded-lg">
+        <div className="card animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <h2 className="text-xl font-semibold mb-4">Transcript</h2>
           {transcript ? (
-            <div className="whitespace-pre-wrap p-4 bg-gray-50 rounded-md">{transcript}</div>
+            <div className="whitespace-pre-wrap p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              {transcript}
+            </div>
           ) : (
-            <p className="text-gray-500 italic">
+            <p className="text-gray-500 dark:text-gray-400 italic">
               {audioBlob 
                 ? "Click 'Transcribe Recording' above to convert your speech to text." 
                 : "Your speech transcript will appear here after recording and transcription."}
@@ -117,28 +125,34 @@ export default function SpeechPage() {
         </div>
         
         {transcript && !feedback && (
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex justify-center animate-fade-in" style={{ animationDelay: '0.2s' }}>
             {gradingError && (
-              <div className="p-3 mb-4 text-sm text-red-500 bg-red-50 rounded-md w-full">
+              <div className="p-4 mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800 w-full">
                 {gradingError}
               </div>
             )}
             <button
               type="button"
-              className={`px-6 py-3 rounded-md ${
-                isGrading
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+              className={`btn-primary px-6 py-3 ${
+                isGrading ? 'opacity-70 cursor-not-allowed' : ''
               }`}
               onClick={handleGradeSpeech}
               disabled={isGrading}
             >
-              {isGrading ? 'Grading...' : 'Grade Speech'}
+              {isGrading ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Analyzing Speech...
+                </div>
+              ) : 'Grade Speech'}
             </button>
           </div>
         )}
         
-        <div className="mt-6">
+        <div className="mt-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           {feedback ? (
             <FeedbackDisplay 
               feedback={feedback} 
@@ -147,9 +161,9 @@ export default function SpeechPage() {
               onSaveSuccess={handleSaveSuccess}
             />
           ) : (
-            <div className="p-6 border border-gray-200 rounded-lg">
+            <div className="card">
               <h2 className="text-xl font-semibold mb-4">Feedback & Scores</h2>
-              <p className="text-gray-500 italic">
+              <p className="text-gray-500 dark:text-gray-400 italic">
                 {transcript
                   ? "Click 'Grade Speech' above to receive feedback on your speech."
                   : "Your speech feedback and scores will appear here after analysis."}
@@ -157,12 +171,21 @@ export default function SpeechPage() {
             </div>
           )}
         </div>
-      </div>
-      
-      <div className="mt-8">
-        <Link href="/" className="text-blue-600 hover:text-blue-500">
-          ← Back to Home
-        </Link>
+        
+        <div className="mt-8 flex justify-center">
+          <Link href="/dashboard" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center mr-4">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+          </Link>
+          <Link href="/" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Home
+          </Link>
+        </div>
       </div>
     </div>
   );

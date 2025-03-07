@@ -96,15 +96,15 @@ const Recorder: React.FC<RecorderProps> = ({ onRecordingComplete }) => {
   };
   
   return (
-    <div className="flex flex-col items-center p-6 border rounded-lg bg-white">
+    <div className="flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 transition-colors">
       <div className="w-full mb-6 flex justify-center">
         {isRecording ? (
           <div className="flex items-center">
             <div className="w-4 h-4 rounded-full bg-red-500 mr-2 animate-pulse"></div>
-            <span className="text-lg font-medium">Recording... {formatTime(recordingTime)}</span>
+            <span className="text-lg font-medium text-gray-800 dark:text-gray-200">Recording... {formatTime(recordingTime)}</span>
           </div>
         ) : (
-          <span className="text-lg font-medium">Ready to record</span>
+          <span className="text-lg font-medium text-gray-800 dark:text-gray-200">Ready to record</span>
         )}
       </div>
       
@@ -112,10 +112,10 @@ const Recorder: React.FC<RecorderProps> = ({ onRecordingComplete }) => {
         <button
           onClick={startRecording}
           disabled={isRecording}
-          className={`px-6 py-3 rounded-full font-medium ${
+          className={`px-6 py-3 rounded-full font-medium transition-colors ${
             isRecording
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-red-600 text-white hover:bg-red-700'
+              ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+              : 'bg-red-600 text-white hover:bg-red-700 dark:hover:bg-red-500'
           }`}
         >
           Start Recording
@@ -124,10 +124,10 @@ const Recorder: React.FC<RecorderProps> = ({ onRecordingComplete }) => {
         <button
           onClick={stopRecording}
           disabled={!isRecording}
-          className={`px-6 py-3 rounded-full font-medium ${
+          className={`px-6 py-3 rounded-full font-medium transition-colors ${
             !isRecording
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-gray-800 text-white hover:bg-gray-900'
+              ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+              : 'bg-gray-800 text-white hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600'
           }`}
         >
           Stop Recording
@@ -136,7 +136,7 @@ const Recorder: React.FC<RecorderProps> = ({ onRecordingComplete }) => {
       
       {audioUrl && (
         <div className="mt-6 w-full">
-          <h3 className="text-lg font-medium mb-2">Recording Preview</h3>
+          <h3 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200">Recording Preview</h3>
           <audio controls src={audioUrl} className="w-full"></audio>
         </div>
       )}
