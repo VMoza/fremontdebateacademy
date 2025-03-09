@@ -27,17 +27,33 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({ audioBlob, onTranscriptionC
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to transcribe audio');
+        let errorMessage = 'Failed to transcribe audio';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          // If we can't parse the JSON, try to get the text
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            console.error('Failed to get error text:', textError);
+          }
+        }
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
       
-      // Pass the transcript to the parent component
+      if (!data.transcript) {
+        throw new Error('No transcript was returned from the service');
+      }
+      
+      // Call the callback with the transcription
       onTranscriptionComplete(data.transcript);
-    } catch (err) {
-      console.error('Transcription error:', err);
-      setError('An error occurred during transcription. Please try again.');
+    } catch (error) {
+      console.error('Transcription error:', error);
+      setError(error.message || 'An error occurred during transcription. Please try again.');
       
       // If there's an error, provide a fallback option to use mock transcripts
       const useFallback = confirm('Transcription failed. Would you like to use a sample transcript instead?');

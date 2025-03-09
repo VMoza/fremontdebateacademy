@@ -13,14 +13,14 @@ export default function CaseGeneratorPage() {
   const [generationProgress, setGenerationProgress] = useState<string | null>(null);
   
   const handleGenerateCase = async () => {
-    if (!topic) {
-      setError("Please enter a debate topic");
+    if (!topic.trim()) {
+      setError('Please enter a debate topic');
       return;
     }
     
     setIsGenerating(true);
     setError(null);
-    setGenerationProgress("Starting case generation...");
+    setDebateCase(null);
     
     try {
       // Set progress updates
@@ -40,35 +40,36 @@ export default function CaseGeneratorPage() {
         }),
       });
       
-      // Update progress
-      setGenerationProgress("Creating structured ARES-I points...");
-      
+      // Check if the response is ok before trying to parse JSON
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate debate case');
+        let errorMessage = 'Failed to generate case';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          // If we can't parse the JSON, try to get the text
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            console.error('Failed to get error text:', textError);
+          }
+        }
+        throw new Error(errorMessage);
       }
+      
+      // Update progress
+      setGenerationProgress("Structuring debate case with ARES-I format...");
+      
+      // Add a small delay to show the progress message
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const data = await response.json();
-      
-      // Validate the structure of the response
-      if (!data.introduction || !data.points || !Array.isArray(data.points) || 
-          data.points.length < 6 || !data.conclusion || !data.speakerAllocation) {
-        throw new Error('The generated debate case is incomplete. Please try again.');
-      }
-      
-      // Ensure each point has all required elements
-      for (let i = 0; i < data.points.length; i++) {
-        const point = data.points[i];
-        if (!point.assertion || !point.reasoning || !point.evidence || !point.source || !point.impact) {
-          throw new Error(`Point ${i+1} is missing required elements. Please try again.`);
-        }
-      }
-      
       setDebateCase(data);
       setGenerationProgress(null);
     } catch (error) {
       console.error('Error generating case:', error);
-      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
+      setError(error.message || 'An error occurred while generating the case. Please try again.');
       setGenerationProgress(null);
     } finally {
       setIsGenerating(false);

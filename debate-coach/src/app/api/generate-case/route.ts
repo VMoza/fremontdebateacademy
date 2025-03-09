@@ -8,6 +8,11 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Starting generate-case API route');
+    
+    // Log OpenAI API key presence (not the actual key)
+    console.log('OpenAI API key present:', !!process.env.OPENAI_API_KEY);
+    
     const { topic, side } = await request.json();
     
     if (!topic) {
@@ -17,17 +22,28 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    console.log(`Generating case for topic: "${topic}", side: "${side || 'Proposition'}"`);
+    
     // Step 1: Generate a research brief on the topic to ensure factual accuracy
-    const researchBrief = await generateResearchBrief(topic, side);
-    
-    // Step 2: Generate the structured debate case with ARES-I format
-    const debateCase = await generateDebateCase(topic, side, researchBrief);
-    
-    return NextResponse.json(debateCase);
+    try {
+      const researchBrief = await generateResearchBrief(topic, side);
+      
+      // Step 2: Generate the structured debate case with ARES-I format
+      const debateCase = await generateDebateCase(topic, side, researchBrief);
+      
+      console.log('Successfully generated debate case');
+      return NextResponse.json(debateCase);
+    } catch (apiError) {
+      console.error('OpenAI API error:', apiError);
+      return NextResponse.json(
+        { error: `OpenAI API error: ${apiError.message}` },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error generating debate case:', error);
     return NextResponse.json(
-      { error: 'An error occurred while generating the debate case' },
+      { error: `An error occurred while generating the debate case: ${error.message}` },
       { status: 500 }
     );
   }
@@ -35,6 +51,8 @@ export async function POST(request: NextRequest) {
 
 // Generate a research brief to ensure factual accuracy
 async function generateResearchBrief(topic: string, side: string): Promise<string> {
+  console.log('Generating research brief');
+  
   const prompt = `
     You are a professional researcher preparing a factual brief on the following debate topic:
     
@@ -55,26 +73,34 @@ async function generateResearchBrief(topic: string, side: string): Promise<strin
     Provide at least 10 specific pieces of evidence that can be used in the debate case.
   `;
   
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a professional researcher who provides accurate, factual information with real sources. Never fabricate information. Be thorough and detailed in your research.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    temperature: 0.7,
-  });
-  
-  return response.choices[0]?.message?.content || '';
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional researcher who provides accurate, factual information with real sources. Never fabricate information. Be thorough and detailed in your research.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+    });
+    
+    console.log('Research brief generated successfully');
+    return response.choices[0]?.message?.content || '';
+  } catch (error) {
+    console.error('Error generating research brief:', error);
+    throw new Error(`Failed to generate research brief: ${error.message}`);
+  }
 }
 
 // Generate the structured debate case with ARES-I format
 async function generateDebateCase(topic: string, side: string, researchBrief: string) {
+  console.log('Generating debate case with ARES-I format');
+  
   const prompt = `
     You are an expert debate coach creating a structured case for a Middle School Public Debate Program (MSPDP) format debate.
     
@@ -140,42 +166,51 @@ async function generateDebateCase(topic: string, side: string, researchBrief: st
     }
   `;
   
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are an expert debate coach who creates structured debate cases using the ARES-I format. You prioritize factual accuracy, thorough reasoning, and comprehensive evidence. Never fabricate information. Make each point detailed and well-developed.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    response_format: { type: 'json_object' },
-    temperature: 0.7,
-  });
-  
-  // Extract the response content
-  const content = response.choices[0]?.message?.content;
-  
-  if (!content) {
-    throw new Error('Failed to generate debate case');
-  }
-  
-  // Parse the JSON response
   try {
-    const debateCase = JSON.parse(content);
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert debate coach who creates structured debate cases using the ARES-I format. You prioritize factual accuracy, thorough reasoning, and comprehensive evidence. Never fabricate information. Make each point detailed and well-developed.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
     
-    // Validate the structure to ensure it has all required elements
-    if (!debateCase.introduction || !debateCase.points || !Array.isArray(debateCase.points) || 
-        debateCase.points.length < 6 || !debateCase.conclusion || !debateCase.speakerAllocation) {
-      throw new Error('Generated debate case has an invalid structure');
+    // Extract the response content
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('Failed to generate debate case: No content returned from OpenAI');
     }
     
-    return debateCase;
-  } catch (error) {
-    console.error('Error parsing OpenAI response:', error);
-    throw new Error('Failed to parse debate case');
+    console.log('Debate case generated, parsing JSON response');
+    
+    // Parse the JSON response
+    try {
+      const debateCase = JSON.parse(content);
+      
+      // Validate the structure to ensure it has all required elements
+      if (!debateCase.introduction || !debateCase.points || !Array.isArray(debateCase.points) || 
+          debateCase.points.length < 6 || !debateCase.conclusion || !debateCase.speakerAllocation) {
+        throw new Error('Generated debate case has an invalid structure');
+      }
+      
+      console.log('Debate case parsed and validated successfully');
+      return debateCase;
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      console.error('Raw content:', content);
+      throw new Error(`Failed to parse debate case: ${parseError.message}`);
+    }
+  } catch (apiError) {
+    console.error('OpenAI API error in generateDebateCase:', apiError);
+    throw new Error(`Failed to generate debate case: ${apiError.message}`);
   }
 } 

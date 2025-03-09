@@ -14,11 +14,13 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     // Create a temporary directory for storing audio files if it doesn't exist
-    const tempDir = join(process.cwd(), 'tmp');
+    // In Vercel, we should use /tmp directory which is writable
+    const tempDir = '/tmp';
     try {
       await mkdir(tempDir, { recursive: true });
     } catch (error) {
       // Directory might already exist, which is fine
+      console.log('Temp directory already exists or could not be created:', error);
     }
 
     // Get the audio file from the request
@@ -40,25 +42,35 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await audioFile.arrayBuffer());
     await writeFile(filepath, buffer);
     
+    console.log('Audio file saved to:', filepath);
+    
     // Transcribe the audio using OpenAI's Whisper API
-    const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(filepath),
-      model: "whisper-1",
-    });
-    
-    // Clean up the temporary file
     try {
-      fs.unlinkSync(filepath);
-    } catch (error) {
-      console.error('Error deleting temporary file:', error);
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(filepath),
+        model: "whisper-1",
+      });
+      
+      // Clean up the temporary file
+      try {
+        fs.unlinkSync(filepath);
+      } catch (cleanupError) {
+        console.error('Error deleting temporary file:', cleanupError);
+      }
+      
+      // Return the transcription
+      return NextResponse.json({ transcript: transcription.text });
+    } catch (transcriptionError) {
+      console.error('OpenAI transcription error:', transcriptionError);
+      return NextResponse.json(
+        { error: `Transcription failed: ${transcriptionError.message}` },
+        { status: 500 }
+      );
     }
-    
-    // Return the transcription
-    return NextResponse.json({ transcript: transcription.text });
   } catch (error) {
     console.error('Error transcribing audio:', error);
     return NextResponse.json(
-      { error: 'An error occurred while transcribing the audio' },
+      { error: `An error occurred while transcribing the audio: ${error.message}` },
       { status: 500 }
     );
   }
