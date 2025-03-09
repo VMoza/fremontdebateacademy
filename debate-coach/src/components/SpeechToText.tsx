@@ -51,9 +51,9 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({ audioBlob, onTranscriptionC
       
       // Call the callback with the transcription
       onTranscriptionComplete(data.transcript);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Transcription error:', error);
-      setError(error.message || 'An error occurred during transcription. Please try again.');
+      setError(error?.message || 'An error occurred during transcription. Please try again.');
       
       // If there's an error, provide a fallback option to use mock transcripts
       const useFallback = confirm('Transcription failed. Would you like to use a sample transcript instead?');

@@ -67,9 +67,9 @@ export default function CaseGeneratorPage() {
       const data = await response.json();
       setDebateCase(data);
       setGenerationProgress(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating case:', error);
-      setError(error.message || 'An error occurred while generating the case. Please try again.');
+      setError(error?.message || 'An error occurred while generating the case. Please try again.');
       setGenerationProgress(null);
     } finally {
       setIsGenerating(false);
